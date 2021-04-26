@@ -6,21 +6,33 @@ This Specification outlines a streaming CDC subsystem that allows the existing D
 
 what is solves:
 
-- lowers the amount of complexity in the middle tier Golang code and also the Dart code.
+- Lowers the amount of complexity in the middle tier Golang code and also the Dart code, because the stateful CDC subsystem manages all this state.
+  - The middle tier code is now stateless and so can be scaled out effotlessly.
 
-- allows Modules to be built that are not compiled but added at runtime and then reflected on. This is possible because the CDC subsystem is doing all the work, and the developers IDL in the Module described the data and services.
+- Restarts are much faster.
+  - The  Materialised Views are durable and are effectively replacing caches.
 
-- control and migrate using standard database SQL. By storing all Write, Read and Change data in the Subsystem which itself is a DB that can be used via standard database SQL, you can write standard data migrations, and so ease the burden of keeping it all up to date. Your removing code in your middle tier that you have to maintain to be correct for the DB Schema also.
+- Serverless in that it allows Modules to be built that are not compiled but added at runtime and then reflected on. 
+  - This is possible because the CDC subsystem is doing all the work, and the developers Protobuf in the Module described the data and services.
+
+- Control and migrate using standard database SQL.
+  - By storing all Write, Read and Change data in the Subsystem which itself is a SQL DB, you can write standard data migrations, and so ease the burden of keeping it all up to date.
+  - The middle tier code refactoring effort is vastly reduced when the DB Schema changes.
+
+- automatically enable scale:
+  - you can do Master / Slave. The Master is the source write only DB. The Slaves are the Materialsied Views and change feeds.
+  - you can have a master hot spare, in case your master falls over.
 
 ## General design and flow
 
-Currently we hold mutable data in the Genji DB and Minio S3. These are sources of data.
+What we want is to construct Materialised Views that are configured to update themselves when the source data they are pointing to changes, and for those Materialised vies to emit change feed when they change.
 
-What we want is to construct Materialsied Views that are configured to update themselves when the source they are pointing to updates.
-The source needs to support notifications of any changes. Minio S3 supports this. Genji currently does not.
+Currently we hold the source mutable data in the Genji DB and Minio S3. These are sources of data that is read from and written to currently.
 
-The Materialised View is readonly of course.
-All queries from your middle tier use these materialsied Views.
+The Source data becomes write only.
+
+The Materialised View is readonly of course. All queries from your middle tier use these materialsied Views.
+
 The middle tier is notified when the Materialised View changes, allowing it to react.
 
 A basic example is a Chat system where you need the Flutter GUI to update automatically when users add messages to the chat with images. We will use this Chat example below to illustrate the concepts.
