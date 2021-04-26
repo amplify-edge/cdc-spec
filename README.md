@@ -4,9 +4,13 @@ TODO: Update the chat examples Proto and SQL to be matched. Curently they are no
 
 This Specification outlines a streaming CDC subsystem that allows the existing DB layer to have a Materialised View, such that upstream Modules and Clients get a change feed of the Materialised Views changes.
 
-This lowers the amount of complexity in the middle tier Golang code and also the Dart code.
+what is solves:
 
-It allow Modules to be built that are not compiled but added at runtime and then reflected on. This is possible because the CDC subsystem is doing all the work, and the developers IDL in the Module described the data and services.
+- lowers the amount of complexity in the middle tier Golang code and also the Dart code.
+
+- allows Modules to be built that are not compiled but added at runtime and then reflected on. This is possible because the CDC subsystem is doing all the work, and the developers IDL in the Module described the data and services.
+
+- control and migrate using standard database SQL. By storing all Write, Read and Change data in the Subsystem which itself is a DB that can be used via standard database SQL, you can write standard data migrations, and so ease the burden of keeping it all up to date. Your removing code in your middle tier that you have to maintain to be correct for the DB Schema also.
 
 ## General design and flow
 
@@ -145,10 +149,6 @@ But when you have a CDC subsystem like described above you dont really need Grap
 
 At the Flutter level you new up a Page and the Widgets and give each the Protobuf endpoint for Mutations and Queries and Subscriptions.
 Security is already modelled in the Genji DB, so you can also check if they are allowed to see data that the Protobuf represeents.
-
-## Data Migrations
-
-By storing all Write, Read and Change data in the Subsystem which itself is a DB that can be used via standard database SQL, you can write standard data migrations, and so ease the burden of keeping it all up to date. Your removing code in your middle tier that you have to maintain to be correct for the DB Schema.
 
 
 ## Reference systems
