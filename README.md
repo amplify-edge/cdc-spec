@@ -141,7 +141,7 @@ ERD:
 
 ## 3 Materialised Views (read only)
 
-This system listens to the subsystem's data change feed and updates its Materialised Views.
+This system listens to the data Soures and updates the Materialised Views.
 
 Example Materialised View is:
 
@@ -158,7 +158,9 @@ For images and video the same CDC concepts apply, in that the Materialised Views
 
 ## 4 Materialsied Views Change Feed
 
-When ever a Materialsied View changes, the subsystem sends that change to the users Module, so that they can react.
+This system listens to the Materialised View and provides a tail that can be used by any middle tier.
+
+When ever a Materialised View changes, the subsystem sends that change to the users Module, so that they can react.
 
 Example Query is:
 
