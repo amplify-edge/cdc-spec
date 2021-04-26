@@ -19,7 +19,7 @@ The Materialised View is readonly of course.
 All queries from your middle tier use these materialsied Views.
 The middle tier is notified when the Materialised View changes, allowing it to react.
 
-A basic example is a Chat system where you need to the Flutter GUI to update automatically when users add messages to the chat with images. We will use this example belwo to illustrate the concepts.
+A basic example is a Chat system where you need the Flutter GUI to update automatically when users add messages to the chat with images. We will use this Chat example below to illustrate the concepts.
 
 ## 1 Protobuf Reflection
 
@@ -59,9 +59,11 @@ message MessageAck {
 }
 ```
 
-## 2 Write only source
+## 2 Data Sources (write only)
 
-We need to support the following sources for the write data:
+This is where data mutations are stored.
+
+Support the following sources for the write data:
 
 - Genji for SQL data. Genji can also hold blob btw and is used where Minio is too heavy.
 - S3 for blob data like images and video.
@@ -121,18 +123,36 @@ ERD:
 
 ![alt text](https://github.com/amplify-edge/cdc-spec/blob/master/chat_erd.png?raw=true)
 
-## 3 Read Only Materialised Views
+## 3 Materialised Views (read only)
 
-This system listens to subsystem's data change feed and updates its Materialised Views.
+This system listens to the subsystem's data change feed and updates its Materialised Views.
+
+Example Materialised View is:
 
 ```sql
 SELECT * from chat where chat_topic=<some uuid> 
 ```
 
+For images and video the same CDC concepts apply, in that the Materialised Views hold the transcoded images and videos, and you can use SQL to query for them.
 
-# Examples and take aways
+## 4 Materialsied Views Change Feed
 
-Materialized is a good example of the required sub system.
+When ever a Materialsied View changes, the subsystem sends that change to the users Module, so that they can react.
+
+## Usage Patterns
+
+But when you have a CDC subsystem like described above you dont really need GraphQL. Instead you can model every Screen and Widget of your flutter app in the CDC system itself.
+
+At the Flutter level you new up a Page and the Widgets and give each the Protobuf endpoint for Mutations and Queries and Subscriptions.
+Security is already modelled in the Genji DB, so you can also check if they are allowed to see data that the Protobuf represeents.
+
+## Data Migrations
+
+By storing all Write, Read and Change data in the Subsystem which itself is a DB that can be used via standard database SQL, you can write standard data migrations, and so ease the burden of keeping it all up to date. Your removing code in your middle tier that you have to maintain to be correct for the DB Schema.
+
+
+## Reference systems
+
+Materialized is a very good example of the required sub system.
 
 https://materialize.com/docs/overview/api-components/#sinks
-
