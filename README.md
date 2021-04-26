@@ -2,24 +2,40 @@
 
 TODO: Update the chat examples Proto and SQL to be matched. Curently they are not matching.
 
-This Specification outlines a streaming CDC subsystem to allow the DB layer to be a provide a Materialised View, such that upstream Modules and Clients get a change feed of the Materialised Views changes.
+This Specification outlines a streaming CDC subsystem that allows the existing DB layer to have a Materialised View, such that upstream Modules and Clients get a change feed of the Materialised Views changes.
 
-This lowers the amount of complexity in the middle tier Golang code and also the Dart code.
+what is solves:
 
-It allow Modules to be built that are not compiled but added at runtime and then reflected on. This is possible because the CDC subsystem is doing all the work, and the developers IDL in the Module described the data and services.
+- Lowers the amount of complexity in the middle tier Golang code and also the Dart code, because the stateful CDC subsystem manages all this state.
+  - The middle tier code is now stateless and so can be scaled out effotlessly.
+
+- Restarts are much faster.
+  - The  Materialised Views are durable and are effectively replacing caches.
+
+- Serverless in that it allows Modules to be built that are not compiled but added at runtime and then reflected on. 
+  - This is possible because the CDC subsystem is doing all the work, and the developers Protobuf in the Module described the data and services.
+
+- Control and migrate using standard database SQL.
+  - By storing all Write, Read and Change data in the Subsystem which itself is a SQL DB, you can write standard data migrations, and so ease the burden of keeping it all up to date.
+  - The middle tier code refactoring effort is vastly reduced when the DB Schema changes.
+
+- automatically enable scale:
+  - you can do Master / Slave. The Master is the source write only DB. The Slaves are the Materialsied Views and change feeds.
+  - you can have a master hot spare, in case your master falls over.
 
 ## General design and flow
 
-Currently we hold mutable data in the Genji DB and Minio S3. These are sources of data.
+What we want is to construct Materialised Views that are configured to update themselves when the source data they are pointing to changes, and for those Materialised vies to emit change feed when they change.
 
-What we want is to construct Materialsied Views that are configured to update themselves when the source they are pointing to updates.
-The source needs to support notifications of any changes. Minio S3 supports this. Genji currently does not.
+Currently we hold the source mutable data in the Genji DB and Minio S3. These are sources of data that is read from and written to currently.
 
-The Materialised View is readonly of course.
-All queries from your middle tier use these materialsied Views.
+The Source data becomes write only.
+
+The Materialised View is readonly of course. All queries from your middle tier use these materialsied Views.
+
 The middle tier is notified when the Materialised View changes, allowing it to react.
 
-A basic example is a Chat system where you need to the Flutter GUI to update automatically when users add messages to the chat with images. We will use this example belwo to illustrate the concepts.
+A basic example is a Chat system where you need the Flutter GUI to update automatically when users add messages to the chat with images. We will use this Chat example below to illustrate the concepts.
 
 ## 1 Protobuf Reflection
 
@@ -59,9 +75,11 @@ message MessageAck {
 }
 ```
 
-## 2 Write only source
+## 2 Data Sources (write only)
 
-We need to support the following sources for the write data:
+This is where data mutations are stored.
+
+Support the following sources for the write data:
 
 - Genji for SQL data. Genji can also hold blob btw and is used where Minio is too heavy.
 - S3 for blob data like images and video.
@@ -121,18 +139,48 @@ ERD:
 
 ![alt text](https://github.com/amplify-edge/cdc-spec/blob/master/chat_erd.png?raw=true)
 
-## 3 Read Only Materialised Views
+## 3 Materialised Views (read only)
 
-This system listens to subsystem's data change feed and updates its Materialised Views.
+This system listens to the data Soures and updates the Materialised Views.
+
+Example Materialised View is:
 
 ```sql
-SELECT * from chat where chat_topic=<some uuid> 
+CREATE MATERIALISED VIEW chat AS
+SELECT * 
+FROM chat
+WHERE blah
+GROUP BY chat_topic=<some uuid> 
+ORDER BY chat_message_datetime
+```
+
+For images and video the same CDC concepts apply, in that the Materialised Views hold the transcoded images and videos, and you can use SQL to query for them.
+
+## 4 Materialsied Views Change Feed
+
+This system listens to the Materialised View and provides a tail that can be used by any middle tier.
+
+When ever a Materialised View changes, the subsystem sends that change to the users Module, so that they can react.
+
+Example Query is:
+
+```sql
+BEGIN;
+DECLARE c CURSOR FOR TAIL t;
+FETCH ALL c;
 ```
 
 
-# Examples and take aways
+## Usage Patterns
 
-Materialized is a good example of the required sub system.
+But when you have a CDC subsystem like described above you dont really need GraphQL. Instead you can model every Screen and Widget of your flutter app in the CDC system itself.
+
+At the Flutter level you new up a Page and the Widgets and give each the Protobuf endpoint for Mutations and Queries and Subscriptions.
+Security is already modelled in the Genji DB, so you can also check if they are allowed to see data that the Protobuf represeents.
+
+
+## Reference systems
+
+Materialized is a very good example of the required sub system.
 
 https://materialize.com/docs/overview/api-components/#sinks
-
