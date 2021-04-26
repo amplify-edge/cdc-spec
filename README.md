@@ -146,7 +146,12 @@ This system listens to the subsystem's data change feed and updates its Material
 Example Materialised View is:
 
 ```sql
-SELECT * from chat where chat_topic=<some uuid> 
+CREATE MATERIALISED VIEW chat AS
+SELECT * 
+FROM chat
+WHERE blah
+GROUP BY chat_topic=<some uuid> 
+ORDER BY chat_message_datetime
 ```
 
 For images and video the same CDC concepts apply, in that the Materialised Views hold the transcoded images and videos, and you can use SQL to query for them.
@@ -154,6 +159,15 @@ For images and video the same CDC concepts apply, in that the Materialised Views
 ## 4 Materialsied Views Change Feed
 
 When ever a Materialsied View changes, the subsystem sends that change to the users Module, so that they can react.
+
+Example Query is:
+
+```sql
+BEGIN;
+DECLARE c CURSOR FOR TAIL t;
+FETCH ALL c;
+```
+
 
 ## Usage Patterns
 
