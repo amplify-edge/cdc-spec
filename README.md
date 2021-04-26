@@ -119,7 +119,7 @@ CREATE TABLE chat
 
 ERD:
 
-![alt text](https://github.com/amplify-edge/cdc-sepc/blob/master/chat_erd.png?raw=true)
+![alt text](https://github.com/amplify-edge/cdc-spec/blob/master/chat_erd.png?raw=true)
 
 ## 3 Read Only Materialised Views
 
