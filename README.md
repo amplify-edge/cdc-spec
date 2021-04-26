@@ -2,7 +2,7 @@
 
 TODO: Update the chat examples Proto and SQL to be matched. Curently they are not matching.
 
-This Specification outlines a streaming CDC subsystem to allow the DB layer to be a provide a Materialised View, such that upstream Modules and Clients get a change feed of the Materialised Views changes.
+This Specification outlines a streaming CDC subsystem that allows the existing DB layer to have a Materialised View, such that upstream Modules and Clients get a change feed of the Materialised Views changes.
 
 This lowers the amount of complexity in the middle tier Golang code and also the Dart code.
 
